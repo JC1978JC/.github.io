@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador de Mercado - Resumen y Semáforo</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #16a34a;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+        }
+        .container {
+            width: 100%;
+            max-width: 100%;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+        }
+        h1 {
+            font-size: 1.6rem;
+            margin-top: 0;
+            color: #0f172a;
+            text-align: center;
+        }
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .mode-btn {
+            background-color: #e2e8f0;
+            color: #475569;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .mode-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .categories-nav {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+        .cat-btn {
+            background-color: #e2e8f0;
+            color: #475569;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .cat-btn.active, .cat-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .top-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+        input[type="text"], input[type="number"] {
+            padding: 6px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: var(--primary-color);
+        }
+        .search-input {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px 14px;
+            font-size: 1rem;
+        }
+        button.action-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button.action-btn:hover {
+            background-color: #1d4ed8;
+        }
+        .stats {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .table-container {
+            max-height: 65vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #ffffff;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        th, td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid #f1f5f9;
+        }
+        th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            text-align: center;
+        }
+        tr:hover {
+            background-color: #f8fafc;
+        }
+        .price-input {
+            width: 70px;
+            text-align: right;
+        }
+        .qty-input {
+            width: 55px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f8fafc;
+        }
+        .subtotal-cell {
+            text-align: right;
+            color: #334155;
+        }
+        
+        /* Código de colores del semáforo */
+        .color-green {
+            background-color: #dcfce7 !important; /* Verde económico */
+            color: #166534;
+            font-weight: bold;
+        }
+        .color-yellow {
+            background-color: #fef9c3 !important; /* Amarillo intermedio */
+            color: #854d0e;
+        }
+        .color-red {
+            background-color: #fee2e2 !important; /* Rojo claro costoso */
+            color: #991b1b;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            max-height: 65vh;
+            overflow-y: auto;
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: #f8fafc;
+            margin-bottom: 20px;
+        }
+        .product-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .footer-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🛒 Cotizador Inteligente con Semáforo</h1>
+    
+    <!-- Selector de Modo / Pestañas principales -->
+    <div class="mode-toggle">
+        <button class="mode-btn active" id="btnModeChecklist" onclick="switchMode('checklist')">📋 Modo Selección (A-Z)</button>
+        <button class="mode-btn" id="btnModeSuppliers" onclick="switchMode('suppliers')">💰 Cotizador 5 Proveedores</button>
+        <button class="mode-btn" id="btnModeSummary" onclick="switchMode('summary')">📊 Resumen y Semáforo</button>
+    </div>
+
+    <!-- Pestañas de Capítulos (Solo visible en Modo Selección y Cotizador) -->
+    <div class="categories-nav" id="categoriesNav">
+        <button class="cat-btn active" onclick="filterByCategory('TODAS', this)">📑 Todas (A-Z)</button>
+        <button class="cat-btn" onclick="filterByCategory('LUANA', this)">Luana</button>
+        <button class="cat-btn" onclick="filterByCategory('LIMPIEZA', this)">Limpieza</button>
+        <button class="cat-btn" onclick="filterByCategory('CARNES', this)">Carnes</button>
+        <button class="cat-btn" onclick="filterByCategory('GATOS', this)">Gatos</button>
+        <button class="cat-btn" onclick="filterByCategory('DESPENSA', this)">Despensa</button>
+        <button class="cat-btn" onclick="filterByCategory('LACTEOS', this)">Lácteos</button>
+        <button class="cat-btn" onclick="filterByCategory('FIT', this)">Fit</button>
+        <button class="cat-btn" onclick="filterByCategory('FARMACIA', this)">Farmacia</button>
+        <button class="cat-btn" onclick="filterByCategory('VERDURAS', this)">Verduras</button>
+        <button class="cat-btn" onclick="filterByCategory('OTROS', this)">Otros</button>
+        <button class="cat-btn" onclick="filterByCategory('FRUTAS', this)">Frutas</button>
+        <button class="cat-btn" onclick="filterByCategory('NO APARECE', this)">No Aparece</button>
+    </div>
+
+    <!-- Barra superior de búsqueda -->
+    <div class="top-bar" id="topBarSearch">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Buscar producto..." oninput="renderCurrentView()">
+    </div>
+
+    <div class="stats">
+        <span id="counter">Mostrando elementos</span>
+        <span id="currentViewTitle">Vista: Todas (A-Z)</span>
+    </div>
+
+    <!-- Contenedor dinámico -->
+    <div id="mainViewContainer"></div>
+
+    <div class="footer-actions">
+        <span style="font-size: 0.85rem; color: #64748b;">Semáforo: Verde (Económico), Amarillo (Intermedio), Rojo claro (Costoso).</span>
+        <button class="action-btn" onclick="downloadFlatFile()">📄 Descargar Reporte (.txt)</button>
+    </div>
+</div>
+
+<script>
+    let activeCategory = 'TODAS';
+    let currentMode = 'checklist'; // 'checklist', 'suppliers', 'summary'
+    let suppliers = ["Éxito", "Carulla", "D1", "Olímpica", "Makro"];
+
+    // Base de datos completa con estados predeterminados
+    let items = [
+        { name: "Acondicionador", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mant. almendras", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mant. macadamia", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Nenedent", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Neosporin", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pan Spiga", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pañales día", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pañales noche", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pañales piscina", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Paños húmedos", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pasta Dental", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pasta Lenteja", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Quesito", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Repelente Ecotu", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vitamina C", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vitamina D", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Yogur", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vic vaporub", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Zinkkids", category: "LUANA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Masa Maiz", category: "LUANA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        
+        { name: "Alcohol", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Bicarbonato", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Bolsa basura", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cloro limpiador", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Esponja", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jabon azul", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jabón coco", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jabón líquido", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jabón plato", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papel Higienico", category: "LIMPIEZA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tapa boca", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Toallas semi", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vanish", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vinagre", category: "LIMPIEZA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Cerdo", category: "CARNES", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Contra muslo", category: "CARNES", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Lomito", category: "CARNES", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pechuga", category: "CARNES", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pescado blanco", category: "CARNES", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Salmón", category: "CARNES", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Comida de gatos", category: "GATOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arena de gatos", category: "GATOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Aceite de coco", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Aceite de oliva", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Almendras", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arroz Integral", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Avena Hojuelas", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Avena molida", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Azúcar morena", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Bolsa ziploc", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Bolsa basura G", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Bolsa basura P", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Café", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Canela Polvo", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Crispeta", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Fideos", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Garbanzo", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Ghee", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Huevos", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Leche Almendra", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Lentejas", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Lomitos de atún", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Maiz Lata", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Maiz Pira", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Maizena", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mantequilla", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mayonesa", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mermelada", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mostaza", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mostaza dijon", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papel absorbente", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papel aluminio", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papel Film", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Paprica", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pasta corta int.", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pasta larga int.", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Paste de lentejas", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pimienta", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Polvo Hornear", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Quinoa", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Risotto", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Sal rosada", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Salsa negra", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Servilletas", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Soda", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Te verde", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tortilla integral", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tortilla almendra", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vainilla", category: "DESPENSA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vin. Balsámico", category: "DESPENSA", checked: true, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Leche vaca", category: "LACTEOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Queso crema", category: "LACTEOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Queso mozzarela", category: "LACTEOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Queso Parmesano", category: "LACTEOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Queso Feta", category: "LACTEOS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Yogur Griego", category: "LACTEOS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Arepa amarilla", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arepa de yuca", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arepa quinua", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Bolitas de yuca", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Chitps de yuca", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Deditos de yuca", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Deditos integral", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Estevia", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Rosquillas yuca", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pan Avena", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Gelatina sin azucar", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Chocolate sin azucar", category: "FIT", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Alcaseltzer", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Boiron", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cetirizina", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Dolex Niños", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Dolex", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Echinacea", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Engystol", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Gripp-heel", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Ibuprofeno", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Marymer", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Noraver", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Sentrum", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Suero", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vitamina C", category: "FARMACIA", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Aguacate", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Ajo", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Albahaca", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Apio", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Berengena", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Brocoli", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cebolla blanca", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cebolla roja", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Champiñones", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cilantro", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Coliflor", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Espárrago", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Espinaca", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jenjibre", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Lechuga", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mazorca", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Ñame", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papa amarilla", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papa Blanca", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pepino", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Perejil", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pimentón verde", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pimentón rojo", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Platano maduro", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Platano verde", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Rabano", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Remolacha", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Repollo blanco", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Repollo morado", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Rugula", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tómate", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tómate cherry", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tomate LATA", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Yuca", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Zanahoria", category: "VERDURAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Zuquini", category: "VERDURAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Aceite vegetal", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arroz blanco", category: "OTROS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cereales", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Colcafe", category: "OTROS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Harina Pan", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Harina Trigo", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jabón", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jamon", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pan", category: "OTROS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pasta Dental", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Sal blanca", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Salchichas", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Salsa tomate", category: "OTROS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Ahuyama", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arándano", category: "FRUTAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Banano", category: "FRUTAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Fresas", category: "FRUTAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Kiwi", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Limón", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mandarina", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Mango", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Manzana", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Naranja", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Papaya", category: "FRUTAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Patilla", category: "FRUTAS", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pera", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Piña", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Uvas verdes", category: "FRUTAS", checked: false, qty: 1, prices: [0,0,0,0,0] },
+
+        { name: "Melón", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Arracacha", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Galleta Tosh de Luana", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pasta tornillo", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Hueso", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Alitas de pollo", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Alcapara", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Camote", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pavo", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Leche de coco", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Colágeno sra mj", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Dátiles", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Cebollín", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Gelatina con sabor", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Topping mediterráneo", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Harina Almendra", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pimienta molida", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jamon Pietran", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Calamar", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Jarabe de Maple", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Maca", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Tocineta", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pan masamadre", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pan tajado brioche", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Coco", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Sal de epsom", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Semilla de chia", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Alcachofa", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Pulpo", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Suero costeño", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Carne molida", category: "NO APARECE", checked: true, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Veneno cucarachas", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Vitamina c señora mj", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] },
+        { name: "Whynot", category: "NO APARECE", checked: false, qty: 1, prices: [0,0,0,0,0] }
+    ];
+
+    function switchMode(mode) {
+        currentMode = mode;
+        document.getElementById('btnModeChecklist').classList.toggle('active', mode === 'checklist');
+        document.getElementById('btnModeSuppliers').classList.toggle('active', mode === 'suppliers');
+        document.getElementById('btnModeSummary').classList.toggle('active', mode === 'summary');
+
+        // Ocultar las pestañas de categorías si estamos en el modo Resumen
+        document.getElementById('categoriesNav').style.display = (mode === 'summary') ? 'none' : 'flex';
+        document.getElementById('topBarSearch').style.display = (mode === 'summary') ? 'none' : 'flex';
+
+        renderCurrentView();
+    }
+
+    function filterByCategory(category, btnElement) {
+        activeCategory = category;
+        document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+        document.getElementById('currentViewTitle').textContent = `Vista: ${category}`;
+        renderCurrentView();
+    }
+
+    function renderCurrentView() {
+        if (currentMode === 'checklist') {
+            renderChecklistGrid();
+        } else if (currentMode === 'suppliers') {
+            renderSuppliersTable();
+        } else {
+            renderSummaryTable();
+        }
+    }
+
+    function renderChecklistGrid() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const container = document.getElementById('mainViewContainer');
+        
+        let filtered = items.filter(item => {
+            const matchesCat = (activeCategory === 'TODAS' || item.category === activeCategory);
+            const matchesSearch = item.name.toLowerCase().includes(query);
+            return matchesCat && matchesSearch;
+        });
+        filtered.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+        let html = `<div class="grid-container">`;
+        if (filtered.length === 0) {
+            html += `<div style="grid-column: 1/-1; text-align: center; padding: 30px; color: #64748b;">No hay elementos.</div>`;
+        } else {
+            filtered.forEach((item) => {
+                const globalIndex = items.findIndex(i => i.name === item.name);
+                html += `
+                    <div class="product-card">
+                        <div>
+                            <div style="font-weight:600; font-size:0.95rem;">${item.name}</div>
+                            <div style="font-size:0.75rem; color:#64748b;">${item.category}</div>
+                        </div>
+                        <input type="checkbox" ${item.checked ? 'checked' : ''} style="transform:scale(1.3); cursor:pointer;" onchange="items[${globalIndex}].checked = this.checked">
+                    </div>`;
+            });
+        }
+        html += `</div>`;
+        container.innerHTML = html;
+        document.getElementById('counter').textContent = `Elementos en vista: ${filtered.length}`;
+        document.getElementById('currentViewTitle').textContent = `Vista: ${activeCategory}`;
+    }
+
+    function renderSuppliersTable() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const container = document.getElementById('mainViewContainer');
+
+        let filtered = items.filter(item => {
+            const matchesCat = (activeCategory === 'TODAS' || item.category === activeCategory);
+            const matchesSearch = item.name.toLowerCase().includes(query);
+            return matchesCat && matchesSearch;
+        });
+        filtered.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+        let html = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th rowspan="2" style="vertical-align: middle;">Producto</th>
+                            <th rowspan="2" style="vertical-align: middle;">Categoría</th>
+                            <th rowspan="2" style="vertical-align: middle; background-color: #f1f5f9;">Cantidad</th>`;
+        
+        suppliers.forEach(sup => {
+            html += `<th colspan="2" style="text-align: center; border-bottom: 1px solid var(--border-color);">${sup}</th>`;
+        });
+        html += `</tr><tr>`;
+
+        suppliers.forEach(() => {
+            html += `<th>Precio</th><th>Subtotal</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+
+        if (filtered.length === 0) {
+            html += `<tr><td colspan="${3 + suppliers.length * 2}" style="text-align:center; padding:30px; color:#64748b;">No hay elementos.</td></tr>`;
+        } else {
+            filtered.forEach(item => {
+                const globalIndex = items.findIndex(i => i.name === item.name);
+                let subtotals = item.prices.map(p => (p || 0) * (item.qty || 1));
+                let validSubtotals = subtotals.filter(st => st > 0);
+                let minSubtotal = validSubtotals.length > 0 ? Math.min(...validSubtotals) : -1;
+
+                html += `<tr>
+                    <td style="font-weight:600;">${item.name}</td>
+                    <td style="font-size:0.8rem; color:#64748b;">${item.category}</td>
+                    <td style="text-align: center; background-color: #f8fafc;">
+                        <input type="number" class="qty-input" value="${item.qty || 1}" min="1" onchange="updateQty(${globalIndex}, this.value)">
+                    </td>`;
+
+                for (let s = 0; s < 5; s++) {
+                    let p = item.prices[s] || '';
+                    let st = (item.prices[s] || 0) * (item.qty || 1);
+                    let isBest = (st > 0 && st === minSubtotal);
+
+                    html += `
+                        <td><input type="number" class="price-input" value="${p || ''}" placeholder="0" onchange="updatePrice(${globalIndex}, ${s}, this.value)"></td>
+                        <td class="subtotal-cell ${isBest ? 'best-supplier' : ''}">${st > 0 ? '$' + st.toLocaleString() : '-'}</td>`;
+                }
+                html += `</tr>`;
+            });
+        }
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+        document.getElementById('counter').textContent = `Elementos en cotización: ${filtered.length}`;
+        document.getElementById('currentViewTitle').textContent = `Vista: ${activeCategory}`;
+    }
+
+    function renderSummaryTable() {
+        const container = document.getElementById('mainViewContainer');
+
+        // Filtrar unicamente los productos seleccionados (checked === true)
+        let selectedItems = items.filter(item => item.checked);
+        selectedItems.sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+
+        let html = `
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="vertical-align: middle;">Producto Seleccionado</th>
+                            <th style="vertical-align: middle;">Categoría</th>
+                            <th style="vertical-align: middle; text-align: center;">Cantidad</th>`;
+        
+        suppliers.forEach(sup => {
+            html += `<th style="text-align: center;">Subtotal (${sup})</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+
+        if (selectedItems.length === 0) {
+            html += `<tr><td colspan="${3 + suppliers.length}" style="text-align:center; padding:30px; color:#64748b;">No hay productos seleccionados. Ve a "Modo Selección" y marca algunos elementos con TRUE.</td></tr>`;
+        } else {
+            selectedItems.forEach(item => {
+                // Calcular subtotales para cada proveedor de este producto
+                let subtotals = item.prices.map(p => (p || 0) * (item.qty || 1));
+                
+                // Filtrar subtotales mayores a 0 para clasificar con el semáforo
+                let activeSubtotals = subtotals.filter(st => st > 0);
+                
+                let minSt = activeSubtotals.length > 0 ? Math.min(...activeSubtotals) : -1;
+                let maxSt = activeSubtotals.length > 0 ? Math.max(...activeSubtotals) : -1;
+
+                html += `<tr>
+                    <td style="font-weight:600;">${item.name}</td>
+                    <td style="font-size:0.8rem; color:#64748b;">${item.category}</td>
+                    <td style="text-align: center; font-weight: bold; background-color: #f8fafc;">${item.qty || 1}</td>`;
+
+                for (let s = 0; s < 5; s++) {
+                    let st = subtotals[s];
+                    let colorClass = '';
+
+                    if (st > 0 && activeSubtotals.length > 1) {
+                        if (st === minSt) {
+                            colorClass = 'color-green'; // Más económico
+                        } else if (st === maxSt) {
+                            colorClass = 'color-red'; // Más costoso
+                        } else {
+                            colorClass = 'color-yellow'; // Intermedio
+                        }
+                    } else if (st > 0 && activeSubtotals.length === 1) {
+                        colorClass = 'color-green';
+                    }
+
+                    html += `<td class="subtotal-cell ${colorClass}" style="text-align: center;">${st > 0 ? '$' + st.toLocaleString() : '-'}</td>`;
+                }
+                html += `</tr>`;
+            });
+        }
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+        document.getElementById('counter').textContent = `Total productos seleccionados: ${selectedItems.length}`;
+        document.getElementById('currentViewTitle').textContent = `Vista: Resumen y Semáforo de Compras`;
+    }
+
+    function updateQty(itemIndex, value) {
+        items[itemIndex].qty = parseInt(value) || 1;
+        renderCurrentView();
+    }
+
+    function updatePrice(itemIndex, supplierIndex, value) {
+        items[itemIndex].prices[supplierIndex] = parseFloat(value) || 0;
+        renderCurrentView();
+    }
+
+    function downloadFlatFile() {
+        let content = "RESUMEN DE COMPRAS Y SEMÁFORO DE PROVEEDORES\n";
+        content += "===============================================\n\n";
+
+        let targetItems = items.filter(i => i.checked);
+        targetItems.forEach(item => {
+            content += `[SELECCIONADO] ${item.name} (${item.category}) - Cantidad: ${item.qty}\n`;
+            suppliers.forEach((sup, idx) => {
+                let p = item.prices[idx];
+                let st = p * (item.qty || 1);
+                if (p > 0) {
+                    content += `   -> ${sup}: Subtotal $${st}\n`;
+                }
+            });
+        });
+
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resumen_semaforo_compras.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    renderCurrentView();
+</script>
+
+</body>
+</html>
